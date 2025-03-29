@@ -55,7 +55,7 @@ pipeline {
                             node_modules/.bin/serve -s build &
                             sleep 20  # Tăng thời gian đợi
                             curl --retry 5 --retry-delay 5 http://localhost:3000 || exit 1  # Kiểm tra server
-                            npx playwright test --reporter=html
+                            npx playwright test --reporter=html  # Sửa cú pháp
                         '''
                     }
                     post {
