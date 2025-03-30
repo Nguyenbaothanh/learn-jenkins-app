@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Build') {
             agent {
-                docker{
+                docker {
                     image 'node:18-alpine'
                     reuseNode true
                 }
@@ -14,46 +14,44 @@ pipeline {
                     ls -la
                     node --version
                     npm --version
-                    npm ci
-                    npm run build
-                    ls -la
+                    npm ci || exit 1  # Dừng pipeline nếu cài đặt gặp lỗi
+                    npm run build || exit 1  # Dừng pipeline nếu build gặp lỗi
+                    ls -la build  # Kiểm tra sự tồn tại của các file build
                 '''
             }
         }
-        stage('Test'){
+        stage('Test') {
             agent {
-                docker{
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
-            steps{
-                sh '''
-                test -f build/index.html
-                npm test
-                '''
-            }
-        }
-    }
-            post {
-                always {
-                    junit 'test-results/junit.xml'
-                }
-            }
-}
-        stage('Deploy') {
-            agent {
-                docker{
+                docker {
                     image 'node:18-alpine'
                     reuseNode true
                 }
             }
             steps {
                 sh '''
-                    npm install netlify-cli
-                    node/modules/.bin/netlify --version
+                    test -f build/index.html || exit 1  # Kiểm tra sự tồn tại của file index.html
+                    npm test || exit 1  # Dừng pipeline nếu tests gặp lỗi
                 '''
             }
         }
-        
-
+        stage('Deploy') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh '''
+                    npm install netlify-cli || exit 1  # Dừng pipeline nếu cài đặt netlify-cli gặp lỗi
+                    ./node_modules/.bin/netlify --version || exit 1  # Kiểm tra phiên bản Netlify CLI
+                '''
+            }
+        }
+    }
+    post {
+        always {
+            junit 'test-results/junit.xml'
+        }
+    }
+}
