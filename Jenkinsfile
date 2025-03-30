@@ -48,7 +48,7 @@ pipeline {
                 sh '''
                     npm install netlify-cli || exit 1  # Dừng pipeline nếu cài đặt netlify-cli gặp lỗi
                     ./node_modules/.bin/netlify --version || exit 1  # Kiểm tra phiên bản Netlify CLI
-                    echo "Deploying to production. Site ID
+                    echo "Deploying to production. Site ID"
                 '''
             }
         }
