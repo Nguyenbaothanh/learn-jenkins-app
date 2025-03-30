@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         NETLIFY_SITE_ID = 'f511bef3-1dc1-4b96-a44b-0e55a50e0b33'
+        NETLIFY_AUTH_TOKEN = credentials('netlify-secret')
     }
     stages {
         stage('Build') {
@@ -49,6 +50,7 @@ pipeline {
                     npm install netlify-cli || exit 1  # Dừng pipeline nếu cài đặt netlify-cli gặp lỗi
                     ./node_modules/.bin/netlify --version || exit 1  # Kiểm tra phiên bản Netlify CLI
                     echo "Deploying to production. Site ID"
+                    node_modules/.bin/netlify status
                 '''
             }
         }
