@@ -16,7 +16,7 @@ pipeline {
         }
         stage('Lint Code') {
             steps {
-                sh 'npm run lint || echo "Linting not configured, skipping..."'
+                sh 'npm run lint || echo "Linting not configured, skipping..."'# Note
             }
         }
         stage('Run Unit Tests') {
