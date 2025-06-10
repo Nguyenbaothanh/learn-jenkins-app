@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  namespace: default
+spec:
+  replicas: 2 # Số lượng bản sao (ở đây là 2, bạn có thể tăng lên)
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: node-app
+        image: docker.io/thanh295/nodejs # Thay bằng image của bạn, ví dụ: docker.io/username/my-app:1.0.0
+        ports:
+        - containerPort: 8080 # Cổng mà ứng dụng của bạn lắng nghe
+        resources:
+          requests:
+            cpu: "200m" # Yêu cầu tối thiểu 0.2 CPU
+            memory: "256Mi" # Yêu cầu tối thiểu 256MB RAM
+          limits:
+            cpu: "500m" # Giới hạn tối đa 0.5 CPU
+            memory: "512Mi" # Giới hạn tối đa 512MB RAM
+        livenessProbe: # Kiểm tra sức khỏe của Pod
+          httpGet:
+            path: /health # Đường dẫn API kiểm tra sức khỏe (thay bằng endpoint của bạn)
+            port: 8080
+          initialDelaySeconds: 15 # Chờ 15 giây trước khi kiểm tra lần đầu
+          periodSeconds: 10 # Kiểm tra mỗi 10 giây
+        readinessProbe: # Kiểm tra xem Pod đã sẵn sàng nhận traffic chưa
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
