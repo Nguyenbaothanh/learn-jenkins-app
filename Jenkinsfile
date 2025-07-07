@@ -3,14 +3,19 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "thanh295/nodejs:latest"
-        registryCredential = 'docker-hub'
-        kubeconfigCredential = 'kubernetes'
+        REGISTRY_CREDENTIAL = 'docker-hub'
+        GIT_CREDENTIAL = 'github-key'
+        KUBECONFIG_CREDENTIAL = 'kubeconfigCredential'
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git 'https://github.com/Nguyenbaothanh/learn-jenkins-app.git'
+                git(
+                    branch: 'main',
+                    url: 'https://github.com/Nguyenbaothanh/learn-jenkins-app.git',
+                    credentialsId: "${GIT_CREDENTIAL}"
+                )
             }
         }
 
@@ -40,7 +45,7 @@ pipeline {
 
         stage('Push Docker Image to DockerHub') {
             steps {
-                withDockerRegistry(credentialsId: registryCredential, url: 'https://index.docker.io/v1/') {
+                withDockerRegistry(credentialsId: REGISTRY_CREDENTIAL, url: 'https://index.docker.io/v1/') {
                     sh "docker push ${DOCKER_IMAGE}"
                 }
             }
@@ -51,7 +56,7 @@ pipeline {
                 script {
                     kubernetesDeploy(
                         configs: 'k8s/deployment.yaml',
-                        kubeconfigId: kubeconfigCredential
+                        kubeconfigId: KUBECONFIG_CREDENTIAL
                     )
                 }
             }
