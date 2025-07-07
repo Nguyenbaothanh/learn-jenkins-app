@@ -1,34 +1,41 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'node:18'  // Dùng image NodeJS để build/test app
+        }
+    }
+
     environment {
         DOCKER_IMAGE = "thanh295/nodejs:latest"
+        KUBECONFIG = "/root/.kube/config"  // hoặc nơi khác tùy cấu hình của bạn
     }
+
     stages {
-        stage('Checkout Code') {
-            steps {
-                echo 'Code already checked out by Jenkins'
-            }
-        }
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
             }
         }
+
         stage('Lint Code') {
             steps {
                 sh 'npm run lint || echo "Linting not configured, skipping..."'
             }
         }
+
         stage('Run Unit Tests') {
             steps {
                 sh 'npm test || echo "Tests not configured, skipping..."'
             }
         }
+
         stage('Build Docker Image') {
+            agent any  // cần agent ngoài để chạy Docker build
             steps {
                 sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
+
         stage('Push Docker Image to DockerHub') {
             steps {
                 withDockerRegistry(credentialsId: 'docker-hub', url: 'https://index.docker.io/v1/') {
@@ -36,33 +43,36 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to Server') {
+
+        stage('Deploy to Kubernetes') {
             steps {
-                echo 'Deploying to server...'
+                echo 'Deploying to Kubernetes...'
+
                 sh '''
-                    docker stop node-app || true
-                    docker rm node-app || true
-                    docker run -d --name node-app -p 3000:3000 ${DOCKER_IMAGE}
-                    sleep 5  # Đợi container khởi động
-                    docker ps  # Kiểm tra container đang chạy
-                    docker logs node-app  # Hiển thị log để debug
-                    echo "Check if application is running on port 3000"
-                    netstat -tuln | grep 3000 || echo "Port 3000 not found, check container logs"
+                # Kiểm tra quyền truy cập cluster
+                kubectl version --client
+                kubectl config current-context
+
+                # Apply deployment & service
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+
+                kubectl rollout status deployment/nodejs-app
                 '''
             }
         }
     }
+
     post {
         always {
-            echo 'Cleaning up...'
+            echo 'Cleaning up Docker...'
             sh 'docker system prune -f || true'
         }
         success {
-            echo 'Pipeline completed successfully!'
-            echo "Application deployed at: http://localhost:3000"
+            echo '✅ Deployment completed successfully!'
         }
         failure {
-            echo 'Pipeline failed. Check the logs for details.'
+            echo '❌ Pipeline failed. Check the logs for errors.'
         }
     }
 }
