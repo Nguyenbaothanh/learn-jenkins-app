@@ -6,6 +6,7 @@ pipeline {
         REGISTRY_CREDENTIAL = 'docker-hub'
         GIT_CREDENTIAL = 'github-key'
         KUBECONFIG_CREDENTIAL = 'kubeconfigCredential'
+        K8S_NAMESPACE = 'default' // đổi theo namespace của bạn
     }
 
     stages {
@@ -54,10 +55,12 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    kubernetesDeploy(
-                        configs: 'k8s/deployment.yaml',
-                        kubeconfigId: KUBECONFIG_CREDENTIAL
-                    )
+                    withKubeConfig([credentialsId: KUBECONFIG_CREDENTIAL]) {
+                        sh """
+                            kubectl set image deployment/my-app my-app=${DOCKER_IMAGE} -n ${K8S_NAMESPACE} || \
+                            kubectl apply -f k8s/deployment.yaml -n ${K8S_NAMESPACE}
+                        """
+                    }
                 }
             }
         }
@@ -65,6 +68,7 @@ pipeline {
 
     post {
         always {
+            echo 'Cleaning up Docker system...'
             sh 'docker system prune -f || true'
         }
         success {
