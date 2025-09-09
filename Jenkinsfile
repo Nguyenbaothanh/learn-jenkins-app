@@ -1,12 +1,17 @@
 pipeline {
-    agent any
+    agent {
+        docker { 
+            image 'node-kubectl:latest' 
+            args '-v /var/run/docker.sock:/var/run/docker.sock' // mount docker để build/push image
+        }
+    }
 
     environment {
         DOCKER_IMAGE = "thanh295/nodejs:latest"
         REGISTRY_CREDENTIAL = 'docker-hub'
         GIT_CREDENTIAL = 'github-key'
         KUBECONFIG_CREDENTIAL = 'kubeconfigCredential'
-        K8S_NAMESPACE = 'default' // đổi theo namespace của bạn
+        K8S_NAMESPACE = 'default'
     }
 
     stages {
