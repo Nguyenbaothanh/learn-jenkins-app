@@ -1,17 +1,11 @@
 pipeline {
-    agent {
-        docker { 
-            image 'node-kubectl:latest' 
-            args '-v /var/run/docker.sock:/var/run/docker.sock' // mount docker để build/push image
-        }
-    }
+    agent any
 
     environment {
         DOCKER_IMAGE = "thanh295/nodejs:latest"
         REGISTRY_CREDENTIAL = 'docker-hub'
         GIT_CREDENTIAL = 'github-key'
         KUBECONFIG_CREDENTIAL = 'kubeconfigCredential'
-        K8S_NAMESPACE = 'default'
     }
 
     stages {
@@ -57,15 +51,23 @@ pipeline {
             }
         }
 
+        stage('Setup Kubectl') {
+            steps {
+                sh '''
+                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                chmod +x kubectl
+                mv kubectl $HOME/.local/bin/
+                export PATH=$HOME/.local/bin:$PATH
+                kubectl version --client
+                '''
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
-                script {
-                    withKubeConfig([credentialsId: KUBECONFIG_CREDENTIAL]) {
-                        sh """
-                            kubectl set image deployment/my-app my-app=${DOCKER_IMAGE} -n ${K8S_NAMESPACE} || \
-                            kubectl apply -f k8s/deployment.yaml -n ${K8S_NAMESPACE}
-                        """
-                    }
+                withKubeConfig([credentialsId: "${KUBECONFIG_CREDENTIAL}"]) {
+                    sh "kubectl apply -f k8s/deployment.yaml -n default"
+                    sh "kubectl set image deployment/my-app my-app=${DOCKER_IMAGE} -n default"
                 }
             }
         }
@@ -73,7 +75,6 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up Docker system...'
             sh 'docker system prune -f || true'
         }
         success {
